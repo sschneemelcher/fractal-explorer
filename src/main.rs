@@ -4,7 +4,7 @@ use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::WindowCanvas;
-use sdl2::rect::Point;
+use sdl2::rect::{Point, Rect};
 use sdl2::EventPump;
 
 use std::time::Duration;
@@ -21,7 +21,6 @@ pub fn main() {
         .opengl()
         .build()
         .unwrap();
-
 
     let mut canvas = window.into_canvas()
         .present_vsync()
@@ -50,19 +49,26 @@ fn find_sdl_gl_driver() -> Option<u32> {
 }
 
 
-fn run(canvas: &mut WindowCanvas, event_pump: &mut EventPump, window_width: i32, window_height: i32) -> i32 {
+fn scale(x: f64, a: f64, b: f64, max: f64) -> f64 {
 
+    return ((b-a) * x)/max + a;
+
+} 
+
+fn run(canvas: &mut WindowCanvas, event_pump: &mut EventPump, window_width: i32, window_height: i32) -> i32 {
+    
     let mut max_iteration = 1000;
-    let mut scale = 1f64;
-    let mut x_temp = 0.0f64;
-    let mut y_temp = 0.0f64;
-    let mut iteration = 0u32;
-    let mut tmp = 0f64;
-    let mut x_scaled = 0f64;
-    let mut y_scaled = 0f64;
-    let mut x_offset = -2f64;
-    let mut y_offset = -1f64;
-    let mut c = 0u32;
+    let mut x_temp        = 0.0f64;
+    let mut y_temp        = 0.0f64;
+    let mut iteration     = 0u32;
+    let mut tmp           = 0f64;
+    let mut x_scaled      = 0f64;
+    let mut y_scaled      = 0f64;
+    let mut x_offset      = 0f64;
+    let mut y_offset      = 0f64;
+    let mut c             = 0u32;
+    let mut min           = -2f64;
+    let mut max           = 2f64;
 
     loop {
         canvas.set_draw_color(Color::RGB(0, 0 , 0));
@@ -73,24 +79,24 @@ fn run(canvas: &mut WindowCanvas, event_pump: &mut EventPump, window_width: i32,
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     return 0;
                 },
-                Event::KeyDown { keycode: Some(Keycode::Plus), .. } => scale+=0.1,
-                Event::KeyDown { keycode: Some(Keycode::Minus), .. } => scale-=0.1,
-                Event::KeyDown { keycode: Some(Keycode::Up), .. } => y_offset-=0.1,
-                Event::KeyDown { keycode: Some(Keycode::Down), .. } => y_offset+=0.1,
-                Event::KeyDown { keycode: Some(Keycode::Left), .. } => x_offset-=0.1,
-                Event::KeyDown { keycode: Some(Keycode::Right), .. } => x_offset+=0.1,
+                Event::KeyDown { keycode: Some(Keycode::Plus), .. } => {min /= 1.5; max /= 1.5;}, 
+                Event::KeyDown { keycode: Some(Keycode::Minus), .. } => {min *= 1.5; max *= 1.5;},
+                Event::KeyDown { keycode: Some(Keycode::Up), .. } => y_offset -= 0.1 * (max-min),
+                Event::KeyDown { keycode: Some(Keycode::Down), .. } => y_offset += 0.1 * (max-min),
+                Event::KeyDown { keycode: Some(Keycode::Left), .. } => x_offset -= 0.1 * (max-min),
+                Event::KeyDown { keycode: Some(Keycode::Right), .. } => x_offset += 0.1 * (max-min),
                 Event::KeyDown { keycode: Some(Keycode::Q), .. } => max_iteration+=100,
                 Event::KeyDown { keycode: Some(Keycode::E), .. } => max_iteration-=100,
-                _ => {}
+                _ => continue
             }
         }
-        
 
             for x in 0..window_width {
-                x_scaled = (((x as f64 - x_offset) / window_width as f64) + x_offset) / scale;
+                x_scaled = scale(x as f64, min + x_offset, max + x_offset, window_width as f64);
 
-                for y in 0..window_height as i32 {
-                    y_scaled = (((y as f64 - y_offset) / window_height as f64) + y_offset) / scale;
+                for y in 0..window_height {
+                    //y_scaled = y as f64 / height;
+                    y_scaled = scale(y as f64, min + y_offset, max + y_offset, window_height as f64);
 
                     x_temp = 0.0f64;
                     y_temp = 0.0f64;
@@ -103,15 +109,13 @@ fn run(canvas: &mut WindowCanvas, event_pump: &mut EventPump, window_width: i32,
                         iteration += 1;
                     }
                     c = iteration % 255;
-                    canvas.set_draw_color(Color::RGB(c as u8, (c * c) as u8, (c * c * c ) as u8));
-                    canvas.draw_point(Point::new(x, y));
+                    canvas.set_draw_color(Color::RGB(c as u8, (c + c) as u8, (c + c + c ) as u8));
+                    canvas.draw_point(Point::new(x, y)).ok();
 
                 }
             }
 
             canvas.present();
-
-        //        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
 
