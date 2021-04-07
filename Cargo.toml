@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 sdl2 = "0.34.3"
+num-complex = "0.4"
+rust_decimal = "1.10.3"
